@@ -12,7 +12,7 @@ link to each members respective GitHub profile
 -->
 Developed by: 
 - [member1](https://github.com/cbaker6) - `MAJOR` - `STUDENTS_UNIVERSITY`
-- [member2](https://github.com/cbaker6) - `MAJOR` - `STUDENTS_UNIVERSITY` 
+- [member2](https://github.com/creese04) - `Mechanical Engineering ` - `North Carolina Agricultural & Technical State University` 
 - [member3](https://github.com/cbaker6) - `MAJOR` - `STUDENTS_UNIVERSITY` 
 - [member4](https://github.com/cbaker6) - `MAJOR` - `STUDENTS_UNIVERSITY`
 
