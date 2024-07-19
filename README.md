@@ -11,10 +11,10 @@ List all of the members who developed the project and
 link to each members respective GitHub profile
 -->
 Developed by: 
-- [member1](https://github.com/cbaker6) - `MAJOR` - `STUDENTS_UNIVERSITY`
+- [Parker Sepulvado](https://github.com/Parkersep) - `Mechanical Engineering` - `Texas A&M University`
 - [Camile Reese](https://github.com/creese04) - `Mechanical Engineering` - `North Carolina Agricultural & Technical State University` 
-- [member3](https://github.com/cbaker6) - `MAJOR` - `STUDENTS_UNIVERSITY` 
-- [member4](https://github.com/cbaker6) - `MAJOR` - `STUDENTS_UNIVERSITY`
+- [Davis Adams](https://github.com/davissadams) - `Mechanical Engineering` - `Cornell University` 
+- [Jeffrey Milan](https://github.com/jmillan736) - `Major` - `STUDENTS_UNIVERSITY`
 
 ## Description
 <!--
