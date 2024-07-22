@@ -3,7 +3,7 @@
 <!--
 Name of your teams' final project
 -->
-# final-project
+# Desirable Formation
 ## [National Action Council for Minorities in Engineering(NACME)](https://www.nacme.org) Artificial Intelligence - Machine Learning (AIML) Intensive Summer Bootcamp at the [University of Southern California](https://viterbischool.usc.edu)
 
 <!--
@@ -14,7 +14,7 @@ Developed by:
 - [Parker Sepulvado](https://github.com/Parkersep) - `Mechanical Engineering` - `Texas A&M University`
 - [Camile Reese](https://github.com/creese04) - `Mechanical Engineering` - `North Carolina Agricultural & Technical State University` 
 - [Davis Adams](https://github.com/davissadams) - `Mechanical Engineering` - `Cornell University` 
-- [Jeffrey Milan](https://github.com/jmillan736) - `Major` - `STUDENTS_UNIVERSITY`
+- [Jeffrey Milan](https://github.com/jmillan736) - `Electrical Engineering/Comupter Science` - `University of California, Berkeley`
 
 ## Description
 <!--
