@@ -17,8 +17,9 @@ Developed by:
 - [Jeffrey Milan](https://github.com/jmillan736) - `Electrical Engineering/Comupter Science` - `University of California, Berkeley`
 
 ## Description
-<!--
-Give a short description on what your project accomplishes and what tools is uses. In addition, you can drop screenshots directly into your README file to add them to your README. Take these from your presentations.
+The project goal is to explore the intricate collective behaviors exhibited by bird flocks using advanced deep learning techniques. To achieve this, we will design a dataset with tens of thousands of examples of agents in specific formations, such as v-shapes or diamond-shapes, potentially generated through simulation. The project involves integrating a generative multi-agent trajectory model that combines a Generative Adversarial Network (GAN) with a Graph Neural Network (GNN). The modified GAN pipeline will first generate a random graph based on selected points and compute adjacency matrices. A GNN Recurrent Neural Network (GRNN) will then produce trajectories from this graph, which will be decoded into physical agent positions using an appropriate architecture. Finally, the generated formations will be evaluated by discriminators to refine the model, aiming to learn and predict complex multi-agent behaviors through this integrated approach.
+
+<!-- Give a short description on what your project accomplishes and what tools is uses. In addition, you can drop screenshots directly into your README file to add them to your README. Take these from your presentations.
 -->
 
 ## Usage instructions
