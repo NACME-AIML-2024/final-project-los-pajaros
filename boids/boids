@@ -1,0 +1,161 @@
+import math
+import random
+import pygame
+import sys
+
+# Size of canvas. These get updated to fill the whole screen.
+width = 500
+height = 500
+
+numBoids = 100
+visualRange = 75
+
+boids = []
+ 
+def initBoids():
+    global boids
+    boids = []
+    for i in range(numBoids):
+        boids.append({
+            'x': random.random() * width,
+            'y': random.random() * height,
+            'dx': random.random() * 10 - 5,
+            'dy': random.random() * 10 - 5,
+            'history': [],
+        })
+
+def distance(boid1, boid2):
+    return math.sqrt((boid1['x'] - boid2['x'])**2 + (boid1['y'] - boid2['y'])**2)
+
+def nClosestBoids(boid, n):
+    sorted_boids = sorted(boids, key=lambda other_boid: distance(boid, other_boid))
+    return sorted_boids[1:n+1]
+
+def sizeCanvas():
+    global width, height
+    size = (width, height)
+    return pygame.display.set_mode(size)
+
+def keepWithinBounds(boid):
+    margin = 200
+    turnFactor = 1
+
+    if boid['x'] < margin:
+        boid['dx'] += turnFactor
+    if boid['x'] > width - margin:
+        boid['dx'] -= turnFactor
+    if boid['y'] < margin:
+        boid['dy'] += turnFactor
+    if boid['y'] > height - margin:
+        boid['dy'] -= turnFactor
+
+def flyTowardsCenter(boid):
+    centeringFactor = 0.005
+
+    centerX = 0
+    centerY = 0
+    numNeighbors = 0
+
+    for otherBoid in boids:
+        if distance(boid, otherBoid) < visualRange:
+            centerX += otherBoid['x']
+            centerY += otherBoid['y']
+            numNeighbors += 1
+
+    if numNeighbors:
+        centerX /= numNeighbors
+        centerY /= numNeighbors
+
+        boid['dx'] += (centerX - boid['x']) * centeringFactor
+        boid['dy'] += (centerY - boid['y']) * centeringFactor
+
+def avoidOthers(boid):
+    minDistance = 20
+    avoidFactor = 0.05
+    moveX = 0
+    moveY = 0
+
+    for otherBoid in boids:
+        if otherBoid != boid:
+            if distance(boid, otherBoid) < minDistance:
+                moveX += boid['x'] - otherBoid['x']
+                moveY += boid['y'] - otherBoid['y']
+
+    boid['dx'] += moveX * avoidFactor
+    boid['dy'] += moveY * avoidFactor
+
+def matchVelocity(boid):
+    matchingFactor = 0.05
+
+    avgDX = 0
+    avgDY = 0
+    numNeighbors = 0
+
+    for otherBoid in boids:
+        if distance(boid, otherBoid) < visualRange:
+            avgDX += otherBoid['dx']
+            avgDY += otherBoid['dy']
+            numNeighbors += 1
+
+    if numNeighbors:
+        avgDX /= numNeighbors
+        avgDY /= numNeighbors
+
+        boid['dx'] += (avgDX - boid['dx']) * matchingFactor
+        boid['dy'] += (avgDY - boid['dy']) * matchingFactor
+
+def limitSpeed(boid):
+    speedLimit = 15
+
+    speed = math.sqrt(boid['dx']**2 + boid['dy']**2)
+    if speed > speedLimit:
+        boid['dx'] = (boid['dx'] / speed) * speedLimit
+        boid['dy'] = (boid['dy'] / speed) * speedLimit
+
+def drawBoid(screen, boid):
+    angle = math.atan2(boid['dy'], boid['dx'])
+    boid_surface = pygame.Surface((30, 10), pygame.SRCALPHA)
+    pygame.draw.polygon(boid_surface, (85, 140, 244), [
+        (0, 0), (0, 10), (-15, 5)
+    ])
+    rotated_boid = pygame.transform.rotate(boid_surface, math.degrees(angle))
+    rotated_rect = rotated_boid.get_rect(center=(boid['x'], boid['y']))
+    screen.blit(rotated_boid, rotated_rect)
+
+    if DRAW_TRAIL:
+        for point in boid['history']:
+            pygame.draw.circle(screen, (85, 140, 244, 102), (int(point[0]), int(point[1])), 1)
+
+# Main animation loop
+def animationLoop():
+    global boids
+    for boid in boids:
+        flyTowardsCenter(boid)
+        avoidOthers(boid)
+        matchVelocity(boid)
+        limitSpeed(boid)
+        keepWithinBounds(boid)
+
+        boid['x'] += boid['dx']
+        boid['y'] += boid['dy']
+        boid['history'].append((boid['x'], boid['y']))
+        boid['history'] = boid['history'][-50:]
+
+    screen.fill((255, 255, 255))
+    for boid in boids:
+        drawBoid(screen, boid)
+
+    pygame.display.flip()
+    pygame.time.Clock().tick(60)
+
+pygame.init()
+screen = sizeCanvas()
+DRAW_TRAIL = False
+
+initBoids()
+while True:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+    animationLoop()
