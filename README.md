@@ -24,7 +24,9 @@ The project goal is to explore the intricate collective behaviors exhibited by b
 ## Bird Flock Behavior Prediction Using Boid Simulation
 Bird flock behavior prediction involves understanding and modeling how birds move collectively in formations such as v-shapes or diamond-shapes. These formations are a result of complex interactions between individual birds, and modeling these behaviors can provide insights into the underlying rules governing such collective movements using boid simulation. The boid simulation models the behavior of birds based on three simple rules: separation, alignment, and cohesion. Modeling these behaviors can provide insights into the underlying rules governing such collective movements. We then modeled our boid simulation to behave more in the way birds would behave. By using a nearest neighbor function when the cohesion distance is too far and adding in a emo_birds function which at every timestep makes some birds split from the pack.
 
-<img width="720" alt="Screenshot 2024-07-23 at 10 53 10 AM" src="https://github.com/user-attachments/assets/f46f280b-a5d9-4ffa-b541-440f3c6a4982">
+https://github.com/user-attachments/assets/9f82b806-0196-40b0-8f9e-5937270d90a5
+
+<!-- <img width="720" alt="Screenshot 2024-07-23 at 10 53 10 AM" src="https://github.com/user-attachments/assets/f46f280b-a5d9-4ffa-b541-440f3c6a4982"> -->
 
 ## Our Goals for This Project
 1. Design a dataset with examples of agents in specific formations using a boid simulation.
