@@ -91,3 +91,5 @@ Give details on how to install fork and install your project. You can get all of
 Please feel free to contact
 
 Davis Adams: davis.adams441@gmail.com
+
+Camile Reese: camilereese04@gmail.com
