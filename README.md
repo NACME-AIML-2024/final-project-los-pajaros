@@ -57,7 +57,10 @@ Give details on how to install fork and install your project. You can get all of
 1. Fork this repo
 2. Change directories into your project
 3. On the command line, type `pip3 install requirements.txt`
-4. ....
+4. On the command line, type `pip install os-sys`
+5. On the command line, type `pip install numpy`
+6. On the command line, type `pip install pandas`
+7. Locate and open the file you downloaded from this repo
 
 ## Resources
 1. Hugging Face. “Generative Adversarial Networks (GANs).” [Hugging Face Computer Vision Course](https://huggingface.co/learn/computer-vision-course/en/unit5/generative-models/gans). Accessed 23 July 2024.
@@ -93,3 +96,7 @@ Please feel free to contact
 Davis Adams: davis.adams441@gmail.com
 
 Camile Reese: camilereese04@gmail.com
+
+Parker Sepulvado: parkerlsepulvado@gmail.com
+
+Jeffrey Millan: jmillan736@berkeley.edu
