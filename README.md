@@ -14,7 +14,7 @@ Developed by:
 - [Parker Sepulvado](https://github.com/Parkersep) - `Mechanical Engineering` - `Texas A&M University`
 - [Camile Reese](https://github.com/creese04) - `Mechanical Engineering` - `North Carolina Agricultural & Technical State University` 
 - [Davis Adams](https://github.com/davissadams) - `Mechanical Engineering` - `Cornell University` 
-- [Jeffrey Milan](https://github.com/jmillan736) - `Electrical Engineering/Comupter Science` - `University of California, Berkeley`
+- [Jeffrey Milan](https://github.com/jmillan736) - `Electrical Engineering/Computer Science` - `University of California, Berkeley`
 
 ## Description
 The project goal is to explore the intricate collective behaviors exhibited by bird flocks using advanced deep learning techniques. To achieve this, we will design a dataset with tens of thousands of examples of agents in specific formations, such as v-shapes or diamond-shapes, generated through simulation. The project involves integrating a generative multi-agent trajectory model that combines a Generative Adversarial Network (GAN) with a Graph Neural Network (GNN). The modified GAN pipeline will first generate a random graph based on selected points and compute adjacency matrices. A GNN Recurrent Neural Network (GRNN) will then produce trajectories from this graph, which will be decoded into physical agent positions using an appropriate architecture. Finally, the generated formations will be evaluated by discriminators to refine the model, aiming to learn and predict complex multi-agent behaviors through this integrated approach.
