@@ -37,8 +37,8 @@ https://github.com/user-attachments/assets/9f82b806-0196-40b0-8f9e-5937270d90a5
 1. Refine the model using discriminators to improve the accuracy of the generated formations.
 1. Learn and predict complex multi-agent behaviors through this integrated approach.
 
-![image](https://github.com/user-attachments/assets/53ec5724-be9f-48ed-9acc-2051bfffb4ef)
-
+![image](https://github.com/user-attachments/assets/53df6242-06ee-47e4-96bb-75ae8b477bb0)
+![image](https://github.com/user-attachments/assets/efb113cb-487a-4fa7-b7e6-6cb62a408a71)
 
 ## Models
 1. Boid Simulation: Simulates the behavior of birds based on separation, alignment, and cohesion rules.
