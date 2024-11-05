@@ -1,149 +1,13 @@
 # Standard library imports
-from typing import Union, Sequence
+from pathlib import Path
+from typing import List, Union, Sequence
+
 
 # Third-party library imports
 import numpy as np
 import torch
-from torch_geometric.data import Data
+import torch.nn.functional as F
 from torch_geometric.nn import ChebConv
-
-# Code that I pulled from Pytorch Geometric Temporal
-
-class DynamicGraphTemporalSignal(object):
-    r"""
-    Pulled from: 
-    https://github.com/benedekrozemberczki/pytorch_geometric_temporal/blob/master/torch_geometric_temporal/signal/dynamic_graph_temporal_signal.py
-    A data iterator object to contain a dynamic graph with a
-    changing edge set and weights . The feature set and node labels
-    (target) are also dynamic. The iterator returns a single discrete temporal
-    snapshot for a time period (e.g. day or week). This single snapshot is a
-    Pytorch Geometric Data object. Between two temporal snapshots the edges,
-    edge weights, target matrices and optionally passed attributes might change.
-
-    Args:
-        edge_indices (Sequence of Numpy arrays): Sequence of edge index tensors.
-        edge_weights (Sequence of Numpy arrays): Sequence of edge weight tensors.
-        features (Sequence of Numpy arrays): Sequence of node feature tensors.
-        targets (Sequence of Numpy arrays): Sequence of node label (target) tensors.
-        **kwargs (optional Sequence of Numpy arrays): Sequence of additional attributes.
-    """
-
-    def __init__(
-        self,
-        edge_indices: Sequence[Union[np.ndarray, None]],
-        edge_weights: Sequence[Union[np.ndarray, None]],
-        features: Sequence[Union[np.ndarray, None]],
-        targets: Sequence[Union[np.ndarray, None]],
-        **kwargs: Sequence[np.ndarray]
-    ):
-        self.edge_indices = edge_indices
-        self.edge_weights = edge_weights
-        self.features = features
-        self.targets = targets
-        self.additional_feature_keys = []
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-            self.additional_feature_keys.append(key)
-        self._check_temporal_consistency()
-        self._set_snapshot_count()
-
-    def _check_temporal_consistency(self):
-        assert len(self.features) == len(
-            self.targets
-        ), "Temporal dimension inconsistency."
-        assert len(self.edge_indices) == len(
-            self.edge_weights
-        ), "Temporal dimension inconsistency."
-        assert len(self.features) == len(
-            self.edge_weights
-        ), "Temporal dimension inconsistency."
-        for key in self.additional_feature_keys:
-            assert len(self.targets) == len(
-                getattr(self, key)
-            ), "Temporal dimension inconsistency."
-
-    def _set_snapshot_count(self):
-        self.snapshot_count = len(self.features)
-
-    def _get_edge_index(self, time_index: int):
-        if self.edge_indices[time_index] is None:
-            return self.edge_indices[time_index]
-        else:
-            return torch.LongTensor(self.edge_indices[time_index])
-
-    def _get_edge_weight(self, time_index: int):
-        if self.edge_weights[time_index] is None:
-            return self.edge_weights[time_index]
-        else:
-            return torch.FloatTensor(self.edge_weights[time_index])
-
-    def _get_features(self, time_index: int):
-        if self.features[time_index] is None:
-            return self.features[time_index]
-        else:
-            return torch.FloatTensor(self.features[time_index])
-
-    def _get_target(self, time_index: int):
-        if self.targets[time_index] is None:
-            return self.targets[time_index]
-        else:
-            if self.targets[time_index].dtype.kind == "i":
-                return torch.LongTensor(self.targets[time_index])
-            elif self.targets[time_index].dtype.kind == "f":
-                return torch.FloatTensor(self.targets[time_index])
-
-    def _get_additional_feature(self, time_index: int, feature_key: str):
-        feature = getattr(self, feature_key)[time_index]
-        if feature.dtype.kind == "i":
-            return torch.LongTensor(feature)
-        elif feature.dtype.kind == "f":
-            return torch.FloatTensor(feature)
-
-    def _get_additional_features(self, time_index: int):
-        additional_features = {
-            key: self._get_additional_feature(time_index, key)
-            for key in self.additional_feature_keys
-        }
-        return additional_features
-
-    def __getitem__(self, time_index: Union[int, slice]):
-        if isinstance(time_index, slice):
-            snapshot = DynamicGraphTemporalSignal(
-                self.edge_indices[time_index],
-                self.edge_weights[time_index],
-                self.features[time_index],
-                self.targets[time_index],
-                **{key: getattr(self, key)[time_index] for key in self.additional_feature_keys}
-            )
-        else:
-            x = self._get_features(time_index)
-            edge_index = self._get_edge_index(time_index)
-            edge_weight = self._get_edge_weight(time_index)
-            y = self._get_target(time_index)
-            additional_features = self._get_additional_features(time_index)
-
-            snapshot = Data(x=x, edge_index=edge_index, edge_attr=edge_weight,
-                            y=y, **additional_features)
-        return snapshot
-
-    def __next__(self):
-        if self.t < len(self.features):
-            snapshot = self[self.t]
-            self.t = self.t + 1
-            return snapshot
-        else:
-            self.t = 0
-            raise StopIteration
-
-    def __iter__(self):
-        self.t = 0
-        return self
-    
-def temporal_signal_split(data_iterator, train_ratio=0.8):
-    train_snapshots = int(data_iterator.snapshot_count * train_ratio)
-    train_iterator = data_iterator[0:train_snapshots]
-    test_iterator = data_iterator[train_snapshots:]
-    return train_iterator, test_iterator
 
 class GConvGRU(torch.nn.Module):
     r"""An implementation of the Chebyshev Graph Convolutional Gated Recurrent Unit
@@ -313,3 +177,121 @@ class GConvGRU(torch.nn.Module):
         H_tilde = self._calculate_candidate_state(X, edge_index, edge_weight, H, R, lambda_max)
         H = self._calculate_hidden_state(Z, H, H_tilde)
         return H
+
+#  Basic Graphical Recurrent Neural Network
+class RecurrentGCN(torch.nn.Module):
+    def __init__(self, node_features, filters):
+        super(RecurrentGCN, self).__init__()
+        self.recurrent = GConvGRU(node_features, filters, 2)
+        self.linear = torch.nn.Linear(filters, 4)
+
+    def forward(self, x, edge_index, edge_weight, H=None):
+        h = self.recurrent(x, edge_index, edge_weight, H)
+        x = F.relu(h)
+        x = self.linear(x)
+        return x, h
+    
+class GraphSeqDiscriminator(torch.nn.Module):
+    def __init__(self, node_feat_dim, enc_hidden_dim, enc_latent_dim):
+        super(GraphSeqDiscriminator, self).__init__()
+
+        self.encoder = Encoder(node_feat_dim, enc_hidden_dim, enc_latent_dim)
+        self.linear = torch.nn.Linear(enc_latent_dim, 1)
+
+    def forward(self, x, edge_index, edge_weight, h):
+        z, h_enc_0 = self.encoder(x, edge_index, edge_weight, h)
+        z = F.relu(z)
+
+        # Apply global mean pooling across the node dimension (dim=0) to aggregate node features
+        z_pooled = z.mean(dim=0)
+        out = self.linear(z_pooled)
+        out = torch.sigmoid(z_pooled)
+        return out, h_enc_0
+
+class GraphSeqGenerator(torch.nn.Module):
+    def __init__(self, node_feat_dim, enc_hidden_dim, enc_latent_dim, dec_hidden_dim, pred_horizon, min_max_x, min_max_y, min_max_edge_weight, visualRange,device):
+        super(GraphSeqGenerator, self).__init__()
+        self.encoder = Encoder(node_feat_dim, enc_hidden_dim, enc_latent_dim)
+        self.decoder = Decoder(enc_latent_dim, dec_hidden_dim, node_feat_dim)
+        self.out_steps = pred_horizon
+        self.min_x, self.max_x = min_max_x
+        self.min_y, self.max_y = min_max_y
+        self.min_edge_weight, self.max_edge_weight = min_max_edge_weight
+        self.visualRange = visualRange
+
+    def _compute_edge_index_and_weight(self, y_hat):
+        # Not designed for batches :/
+        # Grab x and y features
+        y_hat_x = y_hat[:, 0].detach().numpy()
+        y_hat_y = y_hat[:, 1].detach().numpy()
+
+        # Undo normalization
+        y_hat_x = y_hat_x * (self.max_x - self.min_x) + self.min_x
+        y_hat_y = y_hat_y * (self.max_y - self.min_y) + self.min_y
+
+        # Compute the distance of all points and include that edge if its less than visualRange
+        coords = np.stack((y_hat_x, y_hat_y), axis=1)
+        dist_matrix = np.linalg.norm(coords[:, np.newaxis, :] - coords[np.newaxis, :, :], axis=2)
+        
+        # Get indices where distance is less than visualRange
+        edge_indices = np.where((dist_matrix < self.visualRange) & (dist_matrix > 0))
+        
+        # Create edge_index and edge_attr
+        edge_index = np.vstack((edge_indices[0], edge_indices[1]))
+        edge_weight = dist_matrix[edge_indices]
+
+        #Normalize edge_weight
+        edge_weight = (edge_weight - self.min_edge_weight) / (self.max_edge_weight - self.min_edge_weight)
+        
+        edge_index = torch.tensor(edge_index, dtype=torch.long)
+        edge_weight = torch.tensor(edge_weight, dtype=torch.float)
+        return edge_index, edge_weight
+
+   
+    def forward(self, sequence, h_enc, h_dec):
+        # Warmup Section
+        for i in range(sequence.snapshot_count):
+            snapshot = sequence[i]
+            z, h_enc_0 = self.encoder(snapshot.x, snapshot.edge_index, snapshot.edge_attr, h_enc)
+            y_hat, h_dec_0 = self.decoder(z, snapshot.edge_index, snapshot.edge_weight, h_dec)
+
+            h_enc = h_enc_0
+            h_dec = h_dec_0
+
+        predictions = []
+        predictions.append(y_hat)
+
+        # Prediction Section
+        for _ in range(self.out_steps-1):
+            # TODO: Compute edge index and edge_attr of y_hat :()
+            y_hat_edge_index, y_hat_edge_attr = self._compute_edge_index_and_weight(y_hat)
+    
+            z, h_enc_0 = self.encoder(y_hat, y_hat_edge_index, y_hat_edge_attr, h_enc)
+            y_hat, h_dec_0 = self.decoder(z, y_hat_edge_index, y_hat_edge_attr, h_dec)
+
+            predictions.append(y_hat)
+        return predictions
+
+class Encoder(torch.nn.Module):
+    def __init__(self, input_dim, hidden_dim, latent_dim, k=2):
+        super(Encoder, self).__init__()
+        self.recurrent = GConvGRU(input_dim, hidden_dim, k)
+        self.linear = torch.nn.Linear(hidden_dim, latent_dim)
+    
+    def forward(self, x, edge_index, edge_weight, h):
+        h_0 = self.recurrent(x, edge_index, edge_weight, h)
+        h = F.relu(h_0)
+        h = self.linear(h)
+        return h, h_0 # Output = (latent matrix, hidden state for encoder)
+
+class Decoder(torch.nn.Module):
+    def __init__(self, latent_dim, hidden_dim, output_dim, k=2):
+        super(Decoder, self).__init__()
+        self.recurrent = GConvGRU(latent_dim, hidden_dim, k)
+        self.linear = torch.nn.Linear(hidden_dim, output_dim)
+
+    def forward(self, z, edge_index, edge_weight, h):
+        h_0 = self.recurrent(z, edge_index, edge_weight, h)
+        h = F.relu(h_0)
+        h = self.linear(h)
+        return h, h_0 # Output = (Final Output, hidden state for decoder)

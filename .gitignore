@@ -11,6 +11,8 @@ notebooks/cifar_net.pth
 *.pptx
 *.zip
 *.csv
+*.png
+*.mp4
 
 # IPython
 profile_default/
