@@ -1,13 +1,13 @@
 # Standard library imports
-from pathlib import Path
-from typing import List, Union, Sequence
-
+from typing import Union, Sequence
 
 # Third-party library imports
 import pandas as pd
 import numpy as np
 import torch
-from torch_geometric.data import Data
+from torch_geometric.data import Data, Batch
+from tqdm import tqdm
+
 
 
 
@@ -190,8 +190,8 @@ class BoidDatasetLoader(object):
         self._read_data()
 
     def _read_data(self):
-        path_to_sim = '../data/simulation.csv'
-        path_to_sim_edges = '../data/simulation_edges.csv'
+        path_to_sim = './data/simulation.csv'
+        path_to_sim_edges = './data/simulation_edges.csv'
         sim_df = pd.read_csv(path_to_sim)
         sim_edges_df = pd.read_csv(path_to_sim_edges)
 
@@ -321,3 +321,42 @@ class BoidDatasetLoader(object):
             self.targets
         )
         return dataset 
+    
+def make_batch(list_of_sequences, seq_length):
+    batch_dataset = []
+    # Look at the first item in the sequence, and then second and so on
+    for t in range(seq_length):
+        batch_list = []
+        # Iterate through list_of_sequences and add the the t-th item from each of them to the batch_list
+        for i in range(len(list_of_sequences)):
+            batch_list.append(list_of_sequences[i][t])
+        # Create a Batch Object from batch_list and add that to batch_dataset
+        batch_dataset.append(Batch.from_data_list(batch_list))
+    return batch_dataset
+
+def dataLoader(dataset, window=8, delay=0, horizon=1, stride=1, batch_size=32):
+    sample_span = window + delay + horizon
+    total_timesteps = dataset.snapshot_count
+    # First get list of observed sequences and their corresponding target sequences
+    obs_seq_list = []
+    target_seq_list = []
+    for start in tqdm(range(0, total_timesteps - sample_span + 1, stride), desc='Getting Observation and Target Sequences'):
+        obs_seq = dataset[start:start + window]
+        obs_seq_list.append(obs_seq)
+        target_seq = dataset[start + window + delay: start + window + delay + horizon]
+        target_seq_list.append(target_seq)
+    # Second need to break up the list into bactches of size BATCH_SIZE
+    batch_list = []
+    for i in tqdm(range(0, len(obs_seq_list), batch_size), desc="Making Fresh Batches"):
+        # Get the start and end index for the batch
+        start, end = i, min(i+batch_size, len(obs_seq_list)) # Doing min here in case I don't have enough in my list to make a complete batch
+        # Grab a sample of both list to create a batch
+        sample_obs_seq_list = obs_seq_list[start:end]
+        sample_target_seq_list = target_seq_list[start:end]
+
+        # Calling helper function make_batch to create a batch from a list of sequences
+        curr_obs_batch = make_batch(sample_obs_seq_list, window)
+        curr_target_batch = make_batch(sample_target_seq_list, horizon)
+        batch_list.append((curr_obs_batch, curr_target_batch))
+
+    return batch_list

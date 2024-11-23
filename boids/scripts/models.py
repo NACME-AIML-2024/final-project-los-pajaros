@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import ChebConv
+from torch_geometric.data import Data, Batch
 
 class GConvGRU(torch.nn.Module):
     r"""An implementation of the Chebyshev Graph Convolutional Gated Recurrent Unit
@@ -190,87 +191,6 @@ class RecurrentGCN(torch.nn.Module):
         x = F.relu(h)
         x = self.linear(x)
         return x, h
-    
-class GraphSeqDiscriminator(torch.nn.Module):
-    def __init__(self, node_feat_dim, enc_hidden_dim, enc_latent_dim):
-        super(GraphSeqDiscriminator, self).__init__()
-
-        self.encoder = Encoder(node_feat_dim, enc_hidden_dim, enc_latent_dim)
-        self.linear = torch.nn.Linear(enc_latent_dim, 1)
-
-    def forward(self, x, edge_index, edge_weight, h):
-        z, h_enc_0 = self.encoder(x, edge_index, edge_weight, h)
-        z = F.relu(z)
-
-        # Apply global mean pooling across the node dimension (dim=0) to aggregate node features
-        z_pooled = z.mean(dim=0)
-        out = self.linear(z_pooled)
-        out = torch.sigmoid(z_pooled)
-        return out, h_enc_0
-
-class GraphSeqGenerator(torch.nn.Module):
-    def __init__(self, node_feat_dim, enc_hidden_dim, enc_latent_dim, dec_hidden_dim, pred_horizon, min_max_x, min_max_y, min_max_edge_weight, visualRange,device):
-        super(GraphSeqGenerator, self).__init__()
-        self.encoder = Encoder(node_feat_dim, enc_hidden_dim, enc_latent_dim)
-        self.decoder = Decoder(enc_latent_dim, dec_hidden_dim, node_feat_dim)
-        self.out_steps = pred_horizon
-        self.min_x, self.max_x = min_max_x
-        self.min_y, self.max_y = min_max_y
-        self.min_edge_weight, self.max_edge_weight = min_max_edge_weight
-        self.visualRange = visualRange
-
-    def _compute_edge_index_and_weight(self, y_hat):
-        # Not designed for batches :/
-        # Grab x and y features
-        y_hat_x = y_hat[:, 0].detach().numpy()
-        y_hat_y = y_hat[:, 1].detach().numpy()
-
-        # Undo normalization
-        y_hat_x = y_hat_x * (self.max_x - self.min_x) + self.min_x
-        y_hat_y = y_hat_y * (self.max_y - self.min_y) + self.min_y
-
-        # Compute the distance of all points and include that edge if its less than visualRange
-        coords = np.stack((y_hat_x, y_hat_y), axis=1)
-        dist_matrix = np.linalg.norm(coords[:, np.newaxis, :] - coords[np.newaxis, :, :], axis=2)
-        
-        # Get indices where distance is less than visualRange
-        edge_indices = np.where((dist_matrix < self.visualRange) & (dist_matrix > 0))
-        
-        # Create edge_index and edge_attr
-        edge_index = np.vstack((edge_indices[0], edge_indices[1]))
-        edge_weight = dist_matrix[edge_indices]
-
-        #Normalize edge_weight
-        edge_weight = (edge_weight - self.min_edge_weight) / (self.max_edge_weight - self.min_edge_weight)
-        
-        edge_index = torch.tensor(edge_index, dtype=torch.long)
-        edge_weight = torch.tensor(edge_weight, dtype=torch.float)
-        return edge_index, edge_weight
-
-   
-    def forward(self, sequence, h_enc, h_dec):
-        # Warmup Section
-        for i in range(sequence.snapshot_count):
-            snapshot = sequence[i]
-            z, h_enc_0 = self.encoder(snapshot.x, snapshot.edge_index, snapshot.edge_attr, h_enc)
-            y_hat, h_dec_0 = self.decoder(z, snapshot.edge_index, snapshot.edge_weight, h_dec)
-
-            h_enc = h_enc_0
-            h_dec = h_dec_0
-
-        predictions = []
-        predictions.append(y_hat)
-
-        # Prediction Section
-        for _ in range(self.out_steps-1):
-            # TODO: Compute edge index and edge_attr of y_hat :()
-            y_hat_edge_index, y_hat_edge_attr = self._compute_edge_index_and_weight(y_hat)
-    
-            z, h_enc_0 = self.encoder(y_hat, y_hat_edge_index, y_hat_edge_attr, h_enc)
-            y_hat, h_dec_0 = self.decoder(z, y_hat_edge_index, y_hat_edge_attr, h_dec)
-
-            predictions.append(y_hat)
-        return predictions
 
 class Encoder(torch.nn.Module):
     def __init__(self, input_dim, hidden_dim, latent_dim, k=2):
@@ -295,3 +215,125 @@ class Decoder(torch.nn.Module):
         h = F.relu(h_0)
         h = self.linear(h)
         return h, h_0 # Output = (Final Output, hidden state for decoder)
+    
+class GraphSeqDiscriminator(torch.nn.Module):
+    def __init__(self, node_feat_dim, enc_hidden_dim, enc_latent_dim, obs_len, target_len, num_boids):
+        super(GraphSeqDiscriminator, self).__init__()
+        self.encoder = Encoder(node_feat_dim, enc_hidden_dim, enc_latent_dim)
+        self.linear = torch.nn.Linear(enc_latent_dim * num_boids, 1)
+        self.obs_len = obs_len
+        self.target_len = target_len
+        self.num_boids = num_boids
+    
+    def forward(self, batch_obs_seq, h_enc):
+        for i in range(self.target_len):
+            snapshot_batch = batch_obs_seq[i]
+            z_batch, h_enc_0 = self.encoder(snapshot_batch.x, snapshot_batch.edge_index, snapshot_batch.edge_attr, h_enc)
+            h_enc = h_enc_0
+        
+        z_batch = F.leaky_relu(z_batch)
+        # Reshaping z_batch from dim (num_boids*batch_size, num_latent) to dim (batch_size, enc_latent_dim*num_boids)
+        z_batch = torch.reshape(z_batch, (-1, self.num_boids*z_batch.shape[1])) 
+        out_batch = self.linear(z_batch)
+        out_batch = torch.sigmoid(out_batch)
+
+        return out_batch, h_enc_0
+
+def get_noise(shape, noise_type):
+    if noise_type == 'gaussian':
+        return torch.randn(*shape).cuda()
+    elif noise_type == 'uniform':
+        return torch.rand(*shape).sub_(0.5).mul_(2.0).cuda()
+    raise ValueError('Unrecognized noise type "%s"' % noise_type)
+
+class GraphSeqGenerator(torch.nn.Module):
+    def __init__(self, node_feat_dim, enc_hidden_dim, enc_latent_dim, dec_hidden_dim, obs_len, target_len, num_boids, batch_size, min_max_x, min_max_y, min_max_edge_weight, visual_range, device):
+        super(GraphSeqGenerator, self).__init__()
+        self.encoder = Encoder(node_feat_dim, enc_hidden_dim, enc_latent_dim-1)
+        self.decoder = Decoder(enc_latent_dim, dec_hidden_dim, node_feat_dim)
+        self.target_len = target_len
+        self.obs_len = obs_len
+        self.num_boids = num_boids
+        self.batch_size = batch_size
+        self.node_feat_dim = node_feat_dim
+        self.min_x, self.max_x = min_max_x
+        self.min_y, self.max_y = min_max_y
+        self.min_edge_weight, self.max_edge_weight = min_max_edge_weight
+        self.visual_range = visual_range
+        self.device = device
+
+    def _compute_edge_index_and_weight(self, y_hat_batch):
+        # Grab x and y features
+        y_hat_x_batch = y_hat_batch[:, 0] 
+        y_hat_y_batch = y_hat_batch[:, 1]
+
+        # Undo normalization
+        y_hat_x_batch = y_hat_x_batch * (self.max_x - self.min_x) + self.min_x
+        y_hat_y_batch = y_hat_y_batch * (self.max_y - self.min_y) + self.min_y
+
+        coords = torch.stack((y_hat_x_batch, y_hat_y_batch), dim=1)
+        
+        coords = torch.reshape(coords, (-1, self.num_boids, 2)) # A single dimension may be -1, in which case it’s inferred from the remaining dimensions and the number of elements in input
+        distances = torch.cdist(coords, coords, p=2)
+
+        edge_index_list = []
+        edge_weight_list = []
+        for i in range(distances.shape[0]):
+            curr_dist = distances[i]
+
+            indices = torch.where((curr_dist < self.visual_range) & (curr_dist > 0))
+            edge_index = torch.vstack((indices[0], indices[1]))
+            edge_weight = curr_dist[indices]
+
+            edge_index_list.append(edge_index)
+            edge_weight_list.append(edge_weight)
+
+        return edge_index_list, edge_weight_list
+    
+    def _convertToDataBatch(self, y_hat_batch, y_hat_edge_index_batch, y_hat_edge_attr_batch):
+        y_hat_batch = torch.reshape(y_hat_batch, (-1, self.num_boids, self.node_feat_dim))
+
+        data_list = [Data(x=y_hat_batch[i], edge_index=y_hat_edge_index_batch[i], edge_attr=y_hat_edge_attr_batch[i]) for i in range(y_hat_batch.shape[0])]
+        return Batch.from_data_list(data_list)
+        
+    def _add_noise(self, input, user_noise='gaussian'):
+        noise_vector = get_noise(shape=(input.shape[0], 1), noise_type=user_noise).to(self.device)
+        return torch.cat((input, noise_vector), dim=1)
+
+    def forward(self, obs_seq_batch, h_enc, h_dec):
+        # Warmup Section
+        for i in range(self.obs_len):
+            snapshot_batch = obs_seq_batch[i]
+
+            z_batch, h_enc_0 = self.encoder(snapshot_batch.x, snapshot_batch.edge_index, snapshot_batch.edge_attr, h_enc)
+            z_noisy_batch = self._add_noise(z_batch, user_noise='gaussian')
+            y_hat_batch, h_dec_0 = self.decoder(z_noisy_batch, snapshot_batch.edge_index, snapshot_batch.edge_attr, h_dec)
+
+            h_enc = h_enc_0
+            h_dec = h_dec_0
+
+        y_hat_edge_index_batch, y_hat_edge_attr_batch = self._compute_edge_index_and_weight(y_hat_batch)
+
+        pred_snapshot_batch_list = []
+
+        pred_snapshot_batch = self._convertToDataBatch(y_hat_batch, y_hat_edge_index_batch, y_hat_edge_attr_batch)
+
+        pred_snapshot_batch_list.append(pred_snapshot_batch)
+        
+        
+        # Prediction Section
+        for _ in range(self.target_len-1):
+            y_hat_batch = pred_snapshot_batch.x
+            y_hat_edge_index_batch = pred_snapshot_batch.edge_index
+            y_hat_edge_attr_batch = pred_snapshot_batch.edge_attr
+
+            z_batch, h_enc_0 = self.encoder(y_hat_batch, y_hat_edge_index_batch, y_hat_edge_attr_batch, h_enc)
+            z_noisy_batch = self._add_noise(z_batch, user_noise='gaussian')
+            y_hat_batch, h_dec_0 = self.decoder(z_noisy_batch, y_hat_edge_index_batch, y_hat_edge_attr_batch, h_dec)
+
+            y_hat_edge_index_batch, y_hat_edge_attr_batch = self._compute_edge_index_and_weight(y_hat_batch)
+
+            pred_snapshot_batch = self._convertToDataBatch(y_hat_batch, y_hat_edge_index_batch, y_hat_edge_attr_batch)
+            pred_snapshot_batch_list.append(pred_snapshot_batch)
+
+        return pred_snapshot_batch_list

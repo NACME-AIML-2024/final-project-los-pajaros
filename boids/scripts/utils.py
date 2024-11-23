@@ -1,26 +1,12 @@
 # Standard library imports
-from pathlib import Path
 import os
-import sys
-import math
-import itertools
-from typing import List, Union, Sequence
 
 
 # Third-party library imports
-import pandas as pd
-import numpy as np
+
 import torch
-import torch.nn.functional as F
-from numpy import ndarray
 from tqdm import tqdm
-from scipy.spatial import distance
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-from PIL import Image
-from torch_geometric.data import Data
-from torch_geometric.nn import ChebConv
-from torch_geometric.nn.conv import GeneralConv
 
 
 def test_generator_plot(test_data, generator, window=8, delay=0, horizon=1, stride=1, boid_indices=[0,1,2,3, 4, 5]):
