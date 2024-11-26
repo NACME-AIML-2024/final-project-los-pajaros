@@ -13,6 +13,7 @@ notebooks/cifar_net.pth
 *.csv
 *.png
 *.mp4
+__pycache__
 
 # IPython
 profile_default/
