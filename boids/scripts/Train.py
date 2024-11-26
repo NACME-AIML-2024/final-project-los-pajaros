@@ -9,7 +9,7 @@ def smooth_positive_labels(y, device):
 # Range btw [0, 0.3]        
 def smooth_negative_labels(y, device):                                 
     return y + torch.mul(torch.rand(size=y.size(), device=device), 0.3)
-def train_gan(train_batches, num_epochs, generator, discriminator, criterion, optimizer_gen, optimizer_disc, batch_size, device, k=1):
+def train_gan(train_batches, num_epochs, generator, discriminator, criterion, optimizer_gen, optimizer_disc, batch_size, device, label_smoothing, k=1):
     """
     Trains the given model using the provided training data.
 
@@ -34,11 +34,20 @@ def train_gan(train_batches, num_epochs, generator, discriminator, criterion, op
     losses_over_iterations = {
         'Generator': [],
         'Discriminator': [],
-        'Dx': [],
-        'D_G_z1': [],
-        'D_G_z2': [],
+        'D(x)': [],
+        'D(G(z)) Before Discriminator Is Updated': [],
+        'D(G(z)) After Discriminator Is Updated': [],
         'Variety': [],
     }
+    scheduler_gen = torch.optim.lr_scheduler.StepLR(optimizer=optimizer_gen,
+                                                    step_size=25,
+                                                    gamma=0.1,
+                                                    )
+    scheduler_disc = torch.optim.lr_scheduler.StepLR(optimizer=optimizer_disc,
+                                                    step_size=25,
+                                                    gamma=0.1,
+                                                    )
+
 
     for epoch in range(num_epochs):
         print(f'Epoch: {epoch+1}/{num_epochs}')
@@ -55,21 +64,32 @@ def train_gan(train_batches, num_epochs, generator, discriminator, criterion, op
             discriminator.zero_grad()
 
             output_real_batch, _ = discriminator(target_seq_batch, None)
-            smooth_pos_labels = smooth_positive_labels(torch.ones(min(batch_size, output_real_batch.shape[0]), device=device), device=device)
-            err_disc_real_batch = criterion(output_real_batch.squeeze(), smooth_pos_labels)
+
+            positive_labels = torch.ones(min(batch_size, output_real_batch.shape[0]), device=device)
+            if label_smoothing:
+                smooth_pos_labels = smooth_positive_labels(positive_labels, device=device)
+                err_disc_real_batch = criterion(output_real_batch.squeeze(), smooth_pos_labels)
+            else:
+                err_disc_real_batch = criterion(output_real_batch.squeeze(), positive_labels)
             err_disc_real_batch.backward()
             D_x = output_real_batch.mean().item()
 
             # Need to detach the y_hat_seq_batch
             # More details here: https://community.deeplearning.ai/t/why-should-we-detach-the-discriminators-input/53220
             output_fake_batch, _ = discriminator([y_hat_seq_batch[i].detach() for i in range(len(y_hat_seq_batch))], None)
-            smooth_neg_labels = smooth_negative_labels(torch.zeros(min(batch_size, output_fake_batch.shape[0]), device=device), device=device)
-            err_disc_fake_batch = criterion(output_fake_batch.squeeze(), smooth_neg_labels)
+
+            negative_labels = torch.zeros(min(batch_size, output_fake_batch.shape[0]), device=device)
+            if label_smoothing:
+                smooth_neg_labels = smooth_negative_labels(negative_labels, device=device)
+                err_disc_fake_batch = criterion(output_fake_batch.squeeze(), smooth_neg_labels)
+            else:
+                err_disc_fake_batch = criterion(output_fake_batch.squeeze(), negative_labels)
+
             err_disc_fake_batch.backward()
 
             D_G_z1 = output_fake_batch.mean().item() #  Before D is updated | Side Note: Assigned it to wrong thing beforehand, now its good
             err_disc = err_disc_fake_batch + err_disc_real_batch
-            optimizer_disc.step()
+            scheduler_disc.step()
 
             # Generator Step
             generator.zero_grad()
@@ -93,7 +113,7 @@ def train_gan(train_batches, num_epochs, generator, discriminator, criterion, op
             # Backward pass for generator
             err_gen.backward()
             D_G_z2 = output_fake_batch.mean().item() # After D is updated
-            optimizer_gen.step()
+            scheduler_gen.step()
 
             # if i % 10 == 0:
             #     print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f | %.4f \tLoss_variety: %.4f'
@@ -102,9 +122,9 @@ def train_gan(train_batches, num_epochs, generator, discriminator, criterion, op
                 
             losses_over_iterations['Generator'].append(err_gen.cpu().item())
             losses_over_iterations['Discriminator'].append(err_disc.cpu().item())
-            losses_over_iterations['Dx'].append(D_x)
-            losses_over_iterations['D_G_z1'].append(D_G_z1)
-            losses_over_iterations['D_G_z2'].append(D_G_z2)
+            losses_over_iterations['D(x)'].append(D_x)
+            losses_over_iterations['D(G(z)) Before Discriminator Is Updated'].append(D_G_z1)
+            losses_over_iterations['D(G(z)) After Discriminator Is Updated'].append(D_G_z2)
             losses_over_iterations['Variety'].append(min_L2_loss.cpu().item())
 
     return losses_over_iterations
