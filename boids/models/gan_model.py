@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from scripts.dataset import BoidDatasetLoader, dataLoader
 from scripts.utils import temporal_signal_split
 from scripts.models import GraphSeqGenerator, GraphSeqDiscriminator
-from scripts.Train import train_gan
-from scripts.Test import test_gan
+from scripts.train import train_gan
+from scripts.test import test_gan
 
 loader = BoidDatasetLoader()
 dataset = loader.get_dataset()

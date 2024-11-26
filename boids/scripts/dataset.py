@@ -8,10 +8,6 @@ import torch
 from torch_geometric.data import Data, Batch
 from tqdm import tqdm
 
-
-
-
-
 class DynamicGraphTemporalSignal(object):
     r"""
     Pulled from: 
