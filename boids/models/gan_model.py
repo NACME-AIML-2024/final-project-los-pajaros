@@ -28,7 +28,7 @@ class GanModel:
         ]
         self.hyperparams = hyperparams
 
-        self._check_hyperparams()
+        self._check_hyperparameters()
 
         self.num_boids = 100
         self.visual_range = 75
@@ -124,6 +124,7 @@ class GanModel:
                                  batch_size=self.hyperparams['batch_size']['value'],
                                  device=self.device,
                                  k=self.hyperparams['diversity_k']['value'],
+                                 label_smoothing=self.hyperparams['label_smoothing']['value']
                                  )
 
         # Save training losses and model
@@ -142,6 +143,7 @@ class GanModel:
                        'Iterations', 'Loss', ['Variety'], 'variety_train_loss.png')
 
     def test(self):
+        criterion = torch.nn.BCELoss()
         test_batches = dataLoader(test_dataset, 
                                   window=self.hyperparams['obs_len']['value'], 
                                   horizon=self.hyperparams['target_len']['value'], 
@@ -151,7 +153,7 @@ class GanModel:
         test_losses = test_gan(test_batches=test_batches,
                                generator=self.generator,
                                discriminator=self.discriminator,
-                               criterion=self.criterion,
+                               criterion=criterion,
                                device=self.device,
                                batch_size=self.hyperparams['batch_size']['value'],
                                k=self.hyperparams['diversity_k']['value'],
@@ -185,23 +187,43 @@ class GanModel:
             target_seq_xy_batch = [torch.reshape(target_batch.x[:, 0:2], (-1, self.num_boids, 2)) for target_batch in target_seq_batch]
             obs_seq_xy_batch = [torch.reshape(obs_batch.x[:, 0:2], (-1, self.num_boids, 2)) for obs_batch in obs_seq_batch]
 
-            random_i = random.randint(0, y_hat_seq_xy_batch[0].shape[0]-1)
-            random_y_hat_seq_xy = [y_hat_xy_batch[random_i] for y_hat_xy_batch in y_hat_seq_xy_batch]
-            random_target_seq_xy = [target_xy_batch[random_i] for target_xy_batch in target_seq_xy_batch]
-            random_obs_seq_xy = [obs_xy_batch[random_i] for obs_xy_batch in obs_seq_xy_batch]
-            random_boids = [random.randint(0, self.num_boids-1) for _ in range(5)]
-
-            plt.title('Predicted Vs. Actual Paths')
-            for boid_id in random_boids:
-                plt.plot([random_obs_seq_xy[i][boid_id][0] for i in range(len(random_obs_seq_xy))], 
-                         [random_obs_seq_xy[i][boid_id][1] for i in range(len(random_obs_seq_xy))], marker='^', 
-                         label=f'Observed Path for Boid #{boid_id}')
-                plt.plot([random_target_seq_xy[i][boid_id][0] for i in range(len(random_target_seq_xy))], 
-                         [random_target_seq_xy[i][boid_id][1] for i in range(len(random_target_seq_xy))], marker='.', 
-                         label=f'Actual Future Path for Boid #{boid_id}')
-                plt.plot([random_y_hat_seq_xy[i][boid_id][0] for i in range(len(random_y_hat_seq_xy))], 
-                         [random_y_hat_seq_xy[i][boid_id][1] for i in range(len(random_y_hat_seq_xy))], marker='x', 
-                         label=f'Predicted Future Path for Boid #{boid_id}')
-            plt.legend(loc=(1.04, 0))
-            plt.savefig(os.path.join(self.test_plots_dir, 'predicted_vs_actual_paths.png'))
-            plt.close()
+            rows = 4
+            cols = 4
+            fig, axs = plt.subplots(rows, cols, figsize=(16, 16), layout='constrained')
+            fig.suptitle('Predicted Vs. Ground Truth', y=1.05, fontsize=16)
+            fig.supxlabel('x')
+            fig.supylabel('y')
+            for i in range(rows):
+                for j in range(cols):
+                    random_i = random.randint(0, y_hat_seq_xy_batch[0].shape[0]-1)
+                    random_y_hat_seq_xy = [y_hat_xy_batch[random_i] for y_hat_xy_batch in y_hat_seq_xy_batch]
+                    random_target_seq_xy = [target_xy_batch[random_i] for target_xy_batch in target_seq_xy_batch]
+                    random_obs_seq_xy = [obs_xy_batch[random_i] for obs_xy_batch in obs_seq_xy_batch]
+                    random_boids = [random.randint(0, NUM_BOIDS-1) for _ in range(4)]
+                
+                    observed_lines = []
+                    pred_lines = []
+                    ground_truth = []
+                    for boid_id in random_boids:
+                        line1, = axs[i,j].plot([random_obs_seq_xy[i][boid_id][0] for i in range(len(random_obs_seq_xy))], 
+                                         [random_obs_seq_xy[i][boid_id][1] for i in range(len(random_obs_seq_xy))], linestyle='dashed',
+                                         label='Observed Trajectory'
+                                        )
+                        prev_color = line1.get_color()
+                        line2,  = axs[i,j].plot([random_y_hat_seq_xy[i][boid_id][0] for i in range(len(random_y_hat_seq_xy))], 
+                                 [random_y_hat_seq_xy[i][boid_id][1] for i in range(len(random_y_hat_seq_xy))], 
+                                 label='Predicted Trajectory', 
+                                 color=prev_color
+                                )
+                        line3,  = axs[i,j].plot([random_target_seq_xy[i][boid_id][0] for i in range(len(random_target_seq_xy))], 
+                                 [random_target_seq_xy[i][boid_id][1] for i in range(len(random_target_seq_xy))], linestyle='dashed', 
+                                 label='Ground Truth',
+                                 color='blue')
+                        observed_lines.append(line1)
+                        pred_lines.append(line2)
+                        ground_truth.append(line3)
+            fig.legend([tuple(observed_lines), tuple(pred_lines), tuple([ground_truth[0]])], 
+                       ['Observed Trajectory', 'Predicted Trajectory', 'Ground Truth'], 
+                       handler_map = {tuple : HandlerTupleVertical()}, loc='upper center', bbox_to_anchor=(0.5, 1.03), ncol=3)
+            fig.savefig(os.path.join(self.test_plots_dir, 'predicted_vs_ground_truth.png'))
+            fig.close()

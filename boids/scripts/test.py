@@ -77,9 +77,9 @@ def test_gan(test_batches, generator, discriminator, criterion, device, batch_si
             evaluation_metrics['D_G_z2'].append(D_G_z2)
             evaluation_metrics['Variety'].append(min_L2_loss.item())
 
-            if i % 20 == 0:
-                print('[%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f | %.4f \tLoss_variety: %.4f'
-                      % (i, len(test_batches), err_disc.item(), err_gen.item(), D_x, D_G_z1, D_G_z2, min_L2_loss.item()))
+            # if i % 20 == 0:
+            #     print('[%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f | %.4f \tLoss_variety: %.4f'
+            #           % (i, len(test_batches), err_disc.item(), err_gen.item(), D_x, D_G_z1, D_G_z2, min_L2_loss.item()))
 
     return evaluation_metrics
 

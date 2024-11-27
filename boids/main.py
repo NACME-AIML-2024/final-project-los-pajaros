@@ -46,8 +46,8 @@ def main():
     else:
         raise ValueError("Model not implemented")
 
-    # model.train()
-    # model.test()
+    model.train()
+    model.test()
 
 if __name__ == "__main__":
     main()

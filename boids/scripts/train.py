@@ -89,7 +89,7 @@ def train_gan(train_batches, num_epochs, generator, discriminator, criterion, op
 
             D_G_z1 = output_fake_batch.mean().item() #  Before D is updated | Side Note: Assigned it to wrong thing beforehand, now its good
             err_disc = err_disc_fake_batch + err_disc_real_batch
-            scheduler_disc.step()
+            optimizer_disc.step()
 
             # Generator Step
             generator.zero_grad()
@@ -113,7 +113,7 @@ def train_gan(train_batches, num_epochs, generator, discriminator, criterion, op
             # Backward pass for generator
             err_gen.backward()
             D_G_z2 = output_fake_batch.mean().item() # After D is updated
-            scheduler_gen.step()
+            optimizer_gen.step()
 
             # if i % 10 == 0:
             #     print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f | %.4f \tLoss_variety: %.4f'
@@ -126,6 +126,8 @@ def train_gan(train_batches, num_epochs, generator, discriminator, criterion, op
             losses_over_iterations['D(G(z)) Before Discriminator Is Updated'].append(D_G_z1)
             losses_over_iterations['D(G(z)) After Discriminator Is Updated'].append(D_G_z2)
             losses_over_iterations['Variety'].append(min_L2_loss.cpu().item())
+        scheduler_disc.step()
+        scheduler_gen.step()
 
     return losses_over_iterations
 

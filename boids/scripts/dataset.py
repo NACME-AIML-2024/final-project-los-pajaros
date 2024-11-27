@@ -186,8 +186,8 @@ class BoidDatasetLoader(object):
         self._read_data()
 
     def _read_data(self):
-        path_to_sim = './data/simulation.csv'
-        path_to_sim_edges = './data/simulation_edges.csv'
+        path_to_sim = '../data/simulation.csv'
+        path_to_sim_edges = '../data/simulation_edges.csv'
         sim_df = pd.read_csv(path_to_sim)
         sim_edges_df = pd.read_csv(path_to_sim_edges)
 
