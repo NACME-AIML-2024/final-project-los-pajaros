@@ -215,6 +215,7 @@ class GanModel:
                        'Iterations', 'Loss', ['Variety Loss'], 'variety_train_loss.png')
 
     def test(self):
+        NUM_EPOCHS = self.hyperparams['num_epochs']['value']
         if self.hyperparams['mode']['value'] == 'gan':
             criterion = torch.nn.BCELoss()
         if self.hyperparams['mode']['value'] == 'lsgan':
@@ -226,7 +227,7 @@ class GanModel:
                                                       device=self.device,
                                                       batch_size=self.hyperparams['batch_size']['value'],
                                                       num_boids=self.num_boids,
-                                                      test_plot_dir=os.path.join(self.test_plots_dir, f"predicted_vs_ground_truth_at_epoch_{epoch}.png"),
+                                                      test_plot_dir=os.path.join(self.test_plots_dir, f"predicted_vs_ground_truth_at_epoch_{NUM_EPOCHS}.png"),
                                                       k=self.hyperparams['diversity_k']['value'],
                                                       mode=self.hyperparams['mode']['value']
                                                      )
