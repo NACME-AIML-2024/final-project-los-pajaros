@@ -98,7 +98,7 @@ class GanModel:
             raise ValueError(f"Missing hyperparameters: {', '.join(missing_params)}")
         #Check if implemented the mode they requested
         if self.hyperparams["mode"]["value"] not in set(['gan', 'lsgan']):
-            raise ValueError(f"Mode: {self.hyperparams["mode"]["value"]} not available")
+            raise ValueError(f'Mode: {self.hyperparams["mode"]["value"]} not available')
         
     def save_metric(self, metrics, metric_type, save_in_train_dir=True):
         """Helper method to save losses as JSON."""
