@@ -98,7 +98,7 @@ class GanModel:
             raise ValueError(f"Missing hyperparameters: {', '.join(missing_params)}")
         #Check if implemented the mode they requested
         if self.hyperparams["mode"]["value"] not in set(['gan', 'lsgan']):
-            raise ValueError(f"Mode: {self.hyperparams["mode"]} not available")
+            raise ValueError(f"Mode: {self.hyperparams["mode"]["value"]} not available")
         
     def save_metric(self, metrics, metric_type, save_in_train_dir=True):
         """Helper method to save losses as JSON."""
@@ -137,11 +137,11 @@ class GanModel:
                                       lr=self.hyperparams['lr_discriminator']['value']
                                      )
         
-        scheduler_gen = torch.optim.lr_scheduler.StepLR(optimizer=optimizer_gen,
+        scheduler_gen = torch.optim.lr_scheduler.StepLR(optimizer=optimizerG,
                                                         step_size=25,
                                                         gamma=0.1,
                                                        )
-        scheduler_disc = torch.optim.lr_scheduler.StepLR(optimizer=optimizer_disc,
+        scheduler_disc = torch.optim.lr_scheduler.StepLR(optimizer=optimizerD,
                                                          step_size=25,
                                                          gamma=0.1,
                                                         )
@@ -164,7 +164,7 @@ class GanModel:
                                        optimizer_gen=optimizerG,
                                        optimizer_disc=optimizerD,
                                        scheduler_gen=scheduler_gen,
-                                       scheduler_disc=scheduler_disc
+                                       scheduler_disc=scheduler_disc,
                                        batch_size=self.hyperparams['batch_size']['value'],
                                        device=self.device,
                                        label_smoothing=self.hyperparams['label_smoothing']['value'],
