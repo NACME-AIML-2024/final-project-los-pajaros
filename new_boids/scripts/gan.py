@@ -136,15 +136,25 @@ class GanModel:
         optimizerD = torch.optim.Adam(self.discriminator.parameters(), 
                                       lr=self.hyperparams['lr_discriminator']['value']
                                      )
-        
-        scheduler_gen = torch.optim.lr_scheduler.StepLR(optimizer=optimizerG,
-                                                        step_size=25,
-                                                        gamma=0.1,
-                                                       )
-        scheduler_disc = torch.optim.lr_scheduler.StepLR(optimizer=optimizerD,
-                                                         step_size=25,
-                                                         gamma=0.1,
-                                                        )
+        if self.hyperparams['scheduler']['value']:
+            scheduler_gen = torch.optim.lr_scheduler.StepLR(optimizer=optimizerG,
+                                                            step_size=25,
+                                                            gamma=0.1
+                                                           )
+            scheduler_disc = torch.optim.lr_scheduler.StepLR(optimizer=optimizerD,
+                                                             step_size=25,
+                                                             gamma=0.1
+                                                            )
+        else:
+            scheduler_gen = torch.optim.lr_scheduler.StepLR(optimizer=optimizerG,
+                                                            step_size=25,
+                                                            gamma=1
+                                                           )
+            
+            scheduler_disc = torch.optim.lr_scheduler.StepLR(optimizer=optimizerD,
+                                    step_size=25,
+                                    gamma=1
+                                    )
         
         NUM_EPOCHS = self.hyperparams['num_epochs']['value']
 
