@@ -10,7 +10,10 @@ def test_step(test_batches, generator, discriminator, criterion, device, batch_s
     generator.eval()  
     discriminator.eval()  
 
-    metrics = ["Generator Loss", "Discriminator Loss", "Variety Loss"]
+    metrics = ["Generator Loss", 
+               "Discriminator Loss", 
+               "Variety Loss"
+              ]
     if mode == "gan":
         metrics.extend(["D(x)", "D(G(z)) Before Discriminator Is Updated", "D(G(z)) After Discriminator Is Updated"])
         
@@ -25,10 +28,10 @@ def test_step(test_batches, generator, discriminator, criterion, device, batch_s
             target_seq_batch = [target_batch.to(device) for target_batch in target_seq_batch]
 
             # Generate predictions
-            y_hat_seq_batch = generator(obs_seq_batch, None, None)
+            y_hat_seq_batch = generator(obs_seq_batch)
 
             # Evaluate the discriminator on real data
-            output_real_batch, _ = discriminator(obs_seq_batch, target_seq_batch, None)
+            output_real_batch = discriminator(obs_seq_batch, target_seq_batch)
             real_labels = torch.ones(min(batch_size, output_real_batch.shape[0]), device=device)
 
             # Ensure the dimensions of `output_real_batch` and `real_labels` match
@@ -41,7 +44,7 @@ def test_step(test_batches, generator, discriminator, criterion, device, batch_s
             D_x = output_real_batch.mean().item()
 
             # Evaluate the discriminator on fake data
-            output_fake_batch, _ = discriminator(obs_seq_batch, y_hat_seq_batch, None)
+            output_fake_batch = discriminator(obs_seq_batch, y_hat_seq_batch)
             fake_labels = torch.zeros(min(batch_size, output_fake_batch.shape[0]), device=device)
 
             # Ensure the dimensions of `output_fake_batch` and `fake_labels` match

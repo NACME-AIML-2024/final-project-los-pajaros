@@ -31,7 +31,7 @@ def main():
 
     # Save updated YAML in the experiment folder
     experiment_name = config["experiment"]["name"]
-    experiment_folder = create_experiment_folder("experiments", experiment_id, experiment_name)
+    experiment_folder = create_experiment_folder("new_experiments", experiment_id, experiment_name)
     updated_config_path = os.path.join(experiment_folder, "hyperparameters.yaml")
     with open(updated_config_path, "w") as file:
         yaml.safe_dump(config, file)

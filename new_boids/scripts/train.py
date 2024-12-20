@@ -19,7 +19,7 @@ def generator_step(generator, discriminator, optimizer_gen, criterion, obs_seq_b
     # 1. Calculate Variety Loss
     k_L2_Losses = []
     for _ in range(k):
-        y_hat_seq_k_batch = generator(obs_seq_batch, None, None)
+        y_hat_seq_k_batch = generator(obs_seq_batch)
         curr_L2_loss = sum([F.mse_loss(y_hat_seq_k_batch[i].x, target_seq_batch[i].x) for i in range(len(y_hat_seq_k_batch))])
         k_L2_Losses.append(curr_L2_loss)
     min_L2_loss = min(k_L2_Losses)
@@ -28,7 +28,7 @@ def generator_step(generator, discriminator, optimizer_gen, criterion, obs_seq_b
     # 2. Calculate Generator Loss
     # Forward pass through the discriminator with the generated data
     if (mode == "gan") or (mode == "lsgan"):
-        output_fake_batch, _ = discriminator(obs_seq_batch, target_hat_seq_batch, None)
+        output_fake_batch = discriminator(obs_seq_batch, target_hat_seq_batch)
         real_labels = torch.ones(min(batch_size, output_fake_batch.shape[0]), device=device)
         output = criterion(output_fake_batch.squeeze(), real_labels)
     # TODO: if (mode == "wgan") or (mode == "wgan-gp):
@@ -50,7 +50,8 @@ def generator_step(generator, discriminator, optimizer_gen, criterion, obs_seq_b
 def discriminator_step(discriminator, optimizer_disc, criterion, obs_seq_batch, target_seq_batch, target_hat_seq_batch, batch_size, device, mode="gan", label_smoothing=False):
     discriminator.zero_grad()
     metrics = []
-    output_real_batch, _ = discriminator(obs_seq_batch, target_seq_batch, None)
+    output_real_batch = discriminator(obs_seq_batch, target_seq_batch)
+
     positive_labels = torch.ones(min(batch_size, output_real_batch.shape[0]), device=device)
     if label_smoothing: # Only apply label smoothing on real labels for the discriminator step
         positive_labels = smooth_positive_labels(positive_labels, device=device)
@@ -59,7 +60,7 @@ def discriminator_step(discriminator, optimizer_disc, criterion, obs_seq_batch, 
 
     # Need to detach the target_hat_seq_batch
     # More details here: https://community.deeplearning.ai/t/why-should-we-detach-the-discriminators-input/53220
-    output_fake_batch, _ = discriminator(obs_seq_batch, [target_hat_seq_batch[i].detach() for i in range(len(target_hat_seq_batch))], None)
+    output_fake_batch = discriminator(obs_seq_batch, [target_hat_seq_batch[i].detach() for i in range(len(target_hat_seq_batch))])
 
     negative_labels = torch.zeros(min(batch_size, output_fake_batch.shape[0]), device=device)
     err_disc_fake_batch = criterion(output_fake_batch.squeeze(), negative_labels)
@@ -95,7 +96,7 @@ def train_step(train_batches, generator, discriminator, criterion, optimizer_gen
         obs_seq_batch = [obs_batch.to(device) for obs_batch in obs_seq_batch]
         target_seq_batch = [target_batch.to(device) for target_batch in target_seq_batch]
 
-        target_hat_seq_batch = generator(obs_seq_batch, None, None)
+        target_hat_seq_batch = generator(obs_seq_batch)
         
         # Discriminator Step
         disc_metrics = discriminator_step(discriminator=discriminator, 

@@ -15,7 +15,9 @@ class GanModel:
     def __init__(self, hyperparams, save_dir="results"):
         self.required_hyperparams = [
             "obs_len", "target_len", "batch_size", "lr_generator", "lr_discriminator", 
-            "num_epochs", "diversity_k", "device", "label_smoothing", "mode"
+            "num_epochs", "diversity_k", "device", "label_smoothing", "mode", "scheduler", 
+            "gen_enc_hidden_dim", "gen_enc_latent_dim", "gen_dec_hidden_dim", 
+            "disc_enc_latent_dim", "recurrent_model"
         ]
         self.hyperparams = hyperparams
 
@@ -43,11 +45,12 @@ class GanModel:
                                      )
         self.device = torch.device(self.hyperparams['device']['value'])
         
+        
         # Initialize models
         self.generator = GraphSeqGenerator(node_feat_dim=4,
-                                           enc_hidden_dim=32,
-                                           enc_latent_dim=16,
-                                           dec_hidden_dim=32,
+                                           enc_hidden_dim=self.hyperparams['gen_enc_hidden_dim']['value'],
+                                           enc_latent_dim=self.hyperparams['gen_enc_latent_dim']['value'],
+                                           dec_hidden_dim=self.hyperparams['gen_dec_hidden_dim']['value'],
                                            obs_len=self.hyperparams['obs_len']['value'],
                                            target_len=self.hyperparams['target_len']['value'],
                                            num_boids=self.num_boids,
@@ -57,15 +60,17 @@ class GanModel:
                                            min_max_edge_weight=(self.loader.min_edge_weight, self.loader.max_edge_weight),
                                            visual_range=self.visual_range,
                                            device=self.device,
+                                           recurrent_model=self.hyperparams['recurrent_model']['value']
                                            )
         
         self.discriminator = GraphSeqDiscriminator(node_feat_dim=4,
-                                                   enc_hidden_dim=32,
-                                                   enc_latent_dim=16,
+                                                   enc_hidden_dim=self.hyperparams['gen_dec_hidden_dim']['value'],
+                                                   enc_latent_dim=self.hyperparams['disc_enc_latent_dim']['value'],
                                                    obs_len=self.hyperparams['obs_len']['value'],
                                                    target_len=self.hyperparams['target_len']['value'],
                                                    num_boids=self.num_boids,
-                                                   mode=self.hyperparams['mode']['value']
+                                                   mode=self.hyperparams['mode']['value'],
+                                                   recurrent_model=self.hyperparams['recurrent_model']['value']
                                                    )
         self.generator.to(self.device)
         self.discriminator.to(self.device)
