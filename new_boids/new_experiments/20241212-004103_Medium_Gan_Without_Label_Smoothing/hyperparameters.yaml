@@ -1,0 +1,56 @@
+experiment:
+  id: 20241212-004103
+  name: Medium Gan Without Label Smoothing
+hyperparameters:
+  batch_size:
+    description: Size of batch.
+    value: 64
+  device:
+    description: Enable CUDA or other devices such as CPU or MPS
+    value: cuda
+  disc_enc_latent_dim:
+    description: 'Initial value: 16. Hidden dimension output of GConvGru of decoder
+      from discriminator.'
+    value: 32
+  diversity_k:
+    description: Controls how many diverse outputs are considered for the loss.
+    value: 5
+  gen_dec_hidden_dim:
+    description: 'Initial value: 32. Hidden dimension output of GConvGru of decoder
+      from generator.'
+    value: 64
+  gen_enc_hidden_dim:
+    description: 'Initial value: 32. Hidden dimension output of GConvGru of encoder
+      from generator.'
+    value: 32
+  gen_enc_latent_dim:
+    description: 'Initial value: 16. Transforms dim of GConvGRU to latent dim using
+      torch.nn.Linear '
+    value: 64
+  label_smoothing:
+    description: Apply label smoothing to the discriminator.
+    value: false
+  lr_discriminator:
+    description: Learning rate for the discriminator model.
+    value: 1.0e-06
+  lr_generator:
+    description: Learning rate for the generator model.
+    value: 0.01
+  mode:
+    description: Model you will use (right now gan and lsgan)
+    value: gan
+  num_epochs:
+    description: Number of epochs.
+    value: 100
+  obs_len:
+    description: Number of timesteps observed in the input sequence.
+    value: 8
+  recurrent_model:
+    description: Recurrent model for the encoder and decoder
+    value: gru
+  scheduler:
+    description: If you want to slow down the learning rate
+    value: true
+  target_len:
+    description: Number of timesteps predicted by the model.
+    value: 8
